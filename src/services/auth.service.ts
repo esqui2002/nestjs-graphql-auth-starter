@@ -15,21 +15,17 @@ export class AuthService {
     private jwtService: JwtService
   ) { }
   
-  async signUp(payload: SignUpInput) {
+  async signUp(payload: SignUpInput): Promise<{access_token}> {
     
     const salt = await bcrypt.genSalt(10);
     payload.password = await bcrypt.hash(payload.password, salt);
     const user = await this.userRepository.save(payload);
 
-    const { id } = user;
-    const jwt_payload: JwtPayload = { id };
-
-    const access_token = await this.jwtService.sign(jwt_payload);
-
-    return { access_token };
+    return await this.generateToken(user);
+  
   }
 
-  async login(payload: LoginInput) {
+  async login(payload: LoginInput): Promise<{access_token}> {
     const { email, password } = payload;
 
     const user = await this.userRepository.findOne({ email });
@@ -44,12 +40,15 @@ export class AuthService {
       throw new UnauthorizedException('Correo electronico o contraseña incorrectos');
     }
 
-    const { id } = user;
+    return await this.generateToken(user);
+  }
+
+  async generateToken(payload: JwtPayload): Promise<{ access_token }> {
+    const { id } = payload;
     const jwt_payload: JwtPayload = { id };
 
     const access_token = await this.jwtService.sign(jwt_payload);
 
     return { access_token };
-
   }
 }
